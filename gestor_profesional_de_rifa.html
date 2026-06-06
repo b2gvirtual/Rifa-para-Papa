@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Profesional de Sorteos - Día del Padre</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Html2Canvas CDN for Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1329;
+            color: #f8fafc;
+        }
+        /* Custom scrollbar for professional look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        /* Ticket Print Styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                color: #000000 !important;
+                background: #ffffff !important;
+                padding: 20px;
+                box-shadow: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        /* Styling for Sold Mark over buttons */
+        .sold-badge-paid {
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            color: #10b981;
+            position: relative;
+        }
+        .sold-badge-paid::after {
+            content: '✕';
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: rgba(16, 185, 129, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .sold-badge-pending {
+            background: rgba(245, 158, 11, 0.15);
+            border: 2px solid #f59e0b;
+            color: #f59e0b;
+            position: relative;
+        }
+        .sold-badge-pending::after {
+            content: '✕';
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: rgba(245, 158, 11, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- TOP HEADER -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-600/20 text-blue-400 rounded-lg border border-blue-500/30">
+                    <i data-lucide="ticket" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 id="header-title" class="text-xl font-bold tracking-tight text-white">Rifa Regalo - Día del Padre</h1>
+                    <p class="text-xs text-slate-400">Plataforma de Control Administrativo & Emisión de Tickets</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="generateBoardImage()" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-650 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg border border-indigo-500/30 transition">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                    <span>Compartir Estado de WhatsApp</span>
+                </button>
+                <button onclick="openConfigModal()" class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-lg border border-slate-700 transition">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Configuración</span>
+                </button>
+                <button onclick="resetSystemData()" class="flex items-center gap-2 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-sm font-medium rounded-lg border border-red-900/50 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Restablecer</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT PANEL: GRID & METRICS -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- STATS BOARD -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
+                <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 text-center">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">Disponibles</span>
+                    <span id="stat-available" class="text-xl font-bold text-emerald-400">100</span>
+                </div>
+                <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 text-center">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">Vendidos</span>
+                    <span id="stat-sold" class="text-xl font-bold text-red-400">0</span>
+                </div>
+                <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 text-center">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">Cobrado (Pagado)</span>
+                    <span id="stat-collected" class="text-xl font-bold text-green-400">$0</span>
+                </div>
+                <div class="bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 text-center">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block mb-1">Por Cobrar</span>
+                    <span id="stat-receivable" class="text-xl font-bold text-amber-500">$0</span>
+                </div>
+            </div>
+
+            <!-- GOAL PROGRESS -->
+            <div class="bg-slate-900/40 border border-slate-800/60 p-4 rounded-xl">
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-400">Progreso de Viabilidad Mínima (80 números)</span>
+                    <span id="progress-percent" class="font-semibold text-slate-200">0%</span>
+                </div>
+                <div class="w-full bg-slate-850 rounded-full h-3.5 p-0.5 border border-slate-800">
+                    <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p id="progress-helper" class="text-xs text-yellow-500/85 mt-2 flex items-center gap-1">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline"></i>
+                    <span>Faltan <b id="remaining-to-goal">80</b> ventas para alcanzar el estado de juego confirmado.</span>
+                </p>
+            </div>
+
+            <!-- BOARD PANEL -->
+            <div class="bg-slate-900/40 border border-slate-800 p-5 rounded-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 text-blue-400"></i>
+                        <h2 class="text-lg font-bold">Cuadrícula Numérica (00 - 99)</h2>
+                    </div>
+                    <span class="text-xs text-slate-400">Selecciona un número para venderlo</span>
+                </div>
+
+                <!-- Number Grid -->
+                <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 sm:gap-2.5">
+                    <!-- Javascript will inject 100 cells dynamically -->
+                </div>
+
+                <div class="flex flex-wrap gap-4 mt-2 justify-center text-xs text-slate-400 font-medium">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-700"></div>
+                        <span>Disponible</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3.5 h-3.5 rounded bg-blue-600/30 border border-blue-500"></div>
+                        <span>Seleccionado</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3.5 h-3.5 rounded bg-emerald-950/40 border border-emerald-500/60 flex items-center justify-center text-[10px] text-emerald-400 font-extrabold">✕</div>
+                        <span>Pagado</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-3.5 h-3.5 rounded bg-amber-950/40 border border-amber-500/60 flex items-center justify-center text-[10px] text-amber-500 font-extrabold">✕</div>
+                        <span>Por Cobrar</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT PANEL: FORMS, TICKETS & RECENT SALES -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- SALE REGISTRATION FORM -->
+            <div class="bg-slate-900/40 border border-slate-800 p-5 rounded-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-emerald-400"></i>
+                    <h2 class="text-lg font-bold text-white">Registrar Venta</h2>
+                </div>
+
+                <form id="sale-form" onsubmit="handleSaleSubmit(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Número Asignado</label>
+                            <input type="text" id="form-selected-number" readonly required
+                                class="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-2 text-center text-xl font-extrabold text-blue-400 cursor-not-allowed focus:outline-none"
+                                placeholder="--">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Precio Ticket ($)</label>
+                            <input type="number" id="form-ticket-price" required min="0" step="any"
+                                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-semibold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Nombre del Comprador</label>
+                        <input type="text" id="form-buyer-name" required
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            placeholder="Ej. Juan Pérez">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase tracking-wider">Teléfono / Canal de Contacto</label>
+                        <input type="text" id="form-buyer-contact" required
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            placeholder="Ej. +58 412-1234567">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 font-semibold mb-1.5 uppercase tracking-wider">Estado de Pago Inicial</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center justify-center gap-2 p-2 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-750 transition">
+                                <input type="radio" name="form-payment-status" value="pagado" checked class="accent-emerald-500">
+                                <span class="text-sm font-semibold text-emerald-400">Pagado</span>
+                            </label>
+                            <label class="flex items-center justify-center gap-2 p-2 bg-slate-800 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-750 transition">
+                                <input type="radio" name="form-payment-status" value="pendiente" class="accent-amber-500">
+                                <span class="text-sm font-semibold text-amber-400">Por Cobrar</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold rounded-lg shadow-lg shadow-emerald-950/20 transition flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        <span>Confirmar y Emitir Ticket</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- TICKET BOX PREVIEW -->
+            <div id="ticket-preview-box" class="hidden bg-slate-900/40 border border-slate-800 p-5 rounded-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-5 h-5 text-indigo-400"></i>
+                        <h2 class="text-lg font-bold">Ticket Generado</h2>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="shareTicketAsImage()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-750 text-xs font-semibold rounded-md flex items-center gap-1.5 transition">
+                            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                            <span>Compartir WhatsApp</span>
+                        </button>
+                        <button onclick="printTicket()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 active:bg-slate-700 text-xs font-semibold rounded-md flex items-center gap-1.5 transition">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                            <span>Imprimir</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printable Component Wrapper -->
+                <div id="print-area" class="bg-white text-slate-950 p-6 rounded-lg border-2 border-dashed border-slate-300 shadow-md">
+                    <!-- Ticket Design -->
+                    <div class="flex flex-col gap-4">
+                        <!-- Top header on ticket -->
+                        <div class="flex justify-between items-start border-b border-slate-200 pb-4">
+                            <div>
+                                <h3 id="ticket-title" class="font-extrabold text-lg text-slate-900 tracking-tight uppercase">RIFA REGALO - DÍA DEL PADRE</h3>
+                                <p id="ticket-date-display" class="text-xs text-slate-500 font-medium">Sábado 21 de Junio</p>
+                            </div>
+                            <div class="text-right flex flex-col items-end gap-1">
+                                <span class="bg-indigo-100 text-indigo-800 text-[10px] font-extrabold px-2 py-0.5 rounded">COMPROBANTE</span>
+                                <span id="ticket-status-badge" class="text-[10px] font-extrabold px-2 py-0.5 rounded"></span>
+                            </div>
+                        </div>
+
+                        <!-- Main content values -->
+                        <div class="grid grid-cols-2 gap-y-3 gap-x-4 py-2 text-sm">
+                            <div>
+                                <span class="text-xs text-slate-400 font-semibold block uppercase">Comprador</span>
+                                <span id="ticket-buyer-val" class="font-bold text-slate-800 text-base">Juan Pérez</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-slate-400 font-semibold block uppercase">Número Seleccionado</span>
+                                <span id="ticket-number-val" class="text-2xl font-black text-indigo-600">07</span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-slate-400 font-semibold block uppercase">Contacto</span>
+                                <span id="ticket-contact-val" class="font-medium text-slate-700">+58 412-1234567</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-slate-400 font-semibold block uppercase">Costo</span>
+                                <span id="ticket-price-val" class="font-bold text-emerald-600 text-lg">$60.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Prizes on Ticket -->
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 text-[11px] leading-relaxed">
+                            <span class="font-bold text-slate-900 block mb-1 border-b border-slate-200 pb-1">Premios a Sortear:</span>
+                            <div class="flex flex-col gap-0.5 text-slate-700 font-medium">
+                                <div><b class="text-indigo-600">1er Premio:</b> KADI Terzo 250CC + Casco</div>
+                                <div><b class="text-indigo-600">2do Premio:</b> iPhone 17 Pro Max</div>
+                                <div><b class="text-indigo-600">3er Premio:</b> $300 en Bs</div>
+                            </div>
+                        </div>
+
+                        <!-- Ticket validation footer -->
+                        <div class="flex items-center justify-between border-t border-slate-200 pt-3 text-[10px] text-slate-400 mt-2">
+                            <div>
+                                <span class="block">Código de Control:</span>
+                                <span id="ticket-control-code" class="font-mono font-bold text-slate-800 text-xs">CTRL-8F3A9B</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block" id="ticket-timestamp-val">05/06/2026 07:53 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SALES HISTORY TABLE -->
+            <div class="bg-slate-900/40 border border-slate-800 p-5 rounded-xl flex-grow flex flex-col min-h-[250px]">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="history" class="w-5 h-5 text-blue-400"></i>
+                        <h2 class="text-lg font-bold">Ventas Recientes</h2>
+                    </div>
+                    <span id="sales-history-count" class="text-xs bg-slate-800 text-slate-300 font-semibold px-2.5 py-0.5 rounded-full">0 Ventas</span>
+                </div>
+
+                <div class="flex-grow overflow-y-auto max-h-[300px] pr-1">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase bg-slate-950 text-slate-400 sticky top-0">
+                            <tr>
+                                <th class="p-3 rounded-l-lg">Nº</th>
+                                <th class="p-3">Comprador / Contacto</th>
+                                <th class="p-3">Monto / Estado</th>
+                                <th class="p-3 text-right rounded-r-lg">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-800/60">
+                            <!-- Injected dynamically -->
+                            <tr id="empty-history-row">
+                                <td colspan="4" class="p-8 text-center text-slate-500">
+                                    <p class="font-medium">No se han registrado ventas.</p>
+                                    <p class="text-xs mt-1">Haga clic en un número libre e ingrese los datos.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- OFFSCREEN HIGH-DEFINITION BOARD SHARING TEMPLATE (For HTML2Canvas Capture) -->
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <div id="board-sharing-card" style="width: 600px; height: 800px;" class="bg-slate-950 text-white p-8 flex flex-col justify-between border-4 border-indigo-900 rounded-2xl relative">
+            <div class="text-center">
+                <div class="inline-block bg-indigo-600/25 border border-indigo-500/50 text-indigo-400 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Sorteo Activo</div>
+                <h2 id="share-card-title" class="text-3xl font-black tracking-tight text-white mb-1 uppercase">RIFA REGALO - DÍA DEL PADRE</h2>
+                <p id="share-card-date" class="text-indigo-300 text-sm font-semibold mb-4">Sábado 21 de Junio</p>
+                <div class="grid grid-cols-3 gap-3 max-w-md mx-auto mb-6">
+                    <div class="bg-emerald-950/40 border border-emerald-500/30 py-2 rounded-lg text-center">
+                        <span class="text-[10px] text-emerald-400 font-bold block uppercase">Disponibles</span>
+                        <span id="share-card-avail" class="text-lg font-black text-emerald-400">100</span>
+                    </div>
+                    <div class="bg-red-950/40 border border-red-500/30 py-2 rounded-lg text-center">
+                        <span class="text-[10px] text-red-400 font-bold block uppercase">Vendidos</span>
+                        <span id="share-card-sold" class="text-lg font-black text-red-400">0</span>
+                    </div>
+                    <div class="bg-indigo-950/40 border border-indigo-500/30 py-2 rounded-lg text-center">
+                        <span class="text-[10px] text-indigo-300 font-bold block uppercase">Valor Nro</span>
+                        <span id="share-card-price" class="text-lg font-black text-indigo-300">$60</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic 10x10 Grid -->
+            <div id="share-card-grid" class="grid grid-cols-10 gap-1.5 bg-slate-900/70 border border-slate-800 p-4 rounded-xl my-2">
+                <!-- Programmatically populated grid -->
+            </div>
+
+            <div class="text-center mt-4">
+                <div class="flex items-center justify-center gap-6 text-[10px] font-bold tracking-wider uppercase mb-4 text-slate-400 bg-slate-900/50 py-2 rounded-lg border border-slate-850">
+                    <div class="flex items-center gap-1.5">
+                        <div style="width: 12px; height: 12px;" class="rounded bg-slate-800 border border-slate-700"></div>
+                        <span>Libre</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div style="width: 12px; height: 12px;" class="rounded bg-emerald-500/80"></div>
+                        <span>Pagado</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <div style="width: 12px; height: 12px;" class="rounded bg-amber-500/80"></div>
+                        <span>Por Cobrar</span>
+                    </div>
+                </div>
+                <div class="border-t border-slate-800/80 pt-4 flex justify-between items-center text-slate-400 text-xs">
+                    <div>
+                        <span class="block text-[10px] uppercase font-bold text-slate-500 text-left">Premios</span>
+                        <span class="font-extrabold text-white text-left block">1º Moto KADI 250CC • 2º iPhone 17 PM</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-[10px] uppercase font-bold text-slate-500">¿Deseas jugar?</span>
+                        <span class="font-extrabold text-indigo-400">¡Escríbeme y elige tu número!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONFIGURATION MODAL -->
+    <div id="config-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md p-6 rounded-xl flex flex-col gap-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-5 h-5 text-blue-400"></i>
+                    <h3 class="text-lg font-bold">Parámetros del Sorteo</h3>
+                </div>
+                <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase">Título Principal del Sorteo</label>
+                    <input type="text" id="cfg-raffle-name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase">Fecha del Sorteo / Información Complementaria</label>
+                    <input type="text" id="cfg-raffle-date" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 font-semibold mb-1 uppercase">Precio por Número por Defecto ($)</label>
+                    <input type="number" id="cfg-ticket-price" min="0" step="any" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-2">
+                <button onclick="closeConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-lg transition">
+                    Cancelar
+                </button>
+                <button onclick="saveConfiguration()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition">
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION MODAL (REPLACES BROWSER ALERTS) -->
+    <div id="notice-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm p-5 rounded-xl flex flex-col gap-4 text-center items-center shadow-xl">
+            <div id="notice-icon-container" class="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                <i id="notice-icon" data-lucide="info" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 id="notice-title" class="text-base font-bold text-white mb-1">Información</h4>
+                <p id="notice-message" class="text-sm text-slate-300">Mensaje de prueba</p>
+            </div>
+            <button onclick="closeNoticeModal()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/80 bg-slate-950/80 py-4 px-6 text-center text-xs text-slate-500">
+        <p>© 2026 Sistema Profesional de Rifa Triple Lago. Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // System State
+        let config = {
+            raffleName: "Rifa Regalo - Día del Padre",
+            raffleDate: "Sábado 21 de Junio",
+            defaultPrice: 60
+        };
+
+        let tickets = {}; // key: number string ("00", "01"), value: Ticket Object
+        let selectedNumber = null;
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            applyConfiguration();
+            renderGrid();
+            updateStatsAndProgress();
+            renderSalesHistory();
+            lucide.createIcons();
+        });
+
+        // Generate Custom Alert Modal
+        function showNotice(title, message, type = 'info') {
+            const modal = document.getElementById('notice-modal');
+            const iconContainer = document.getElementById('notice-icon-container');
+            const iconEl = document.getElementById('notice-icon');
+            const titleEl = document.getElementById('notice-title');
+            const messageEl = document.getElementById('notice-message');
+
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+
+            // Reset styles
+            iconContainer.className = "w-12 h-12 flex items-center justify-center rounded-full border mb-1 ";
+            
+            if (type === 'success') {
+                iconContainer.className += 'bg-emerald-600/20 text-emerald-400 border-emerald-500/30';
+                iconEl.setAttribute('data-lucide', 'check-circle-2');
+            } else if (type === 'error') {
+                iconContainer.className += 'bg-red-600/20 text-red-400 border-red-500/30';
+                iconEl.setAttribute('data-lucide', 'x-circle');
+            } else {
+                iconContainer.className += 'bg-blue-600/20 text-blue-400 border-blue-500/30';
+                iconEl.setAttribute('data-lucide', 'info');
+            }
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeNoticeModal() {
+            document.getElementById('notice-modal').classList.add('hidden');
+        }
+
+        // Local Storage Utilities
+        function saveToLocalStorage() {
+            localStorage.setItem('raffle_system_config', JSON.stringify(config));
+            localStorage.setItem('raffle_system_tickets', JSON.stringify(tickets));
+        }
+
+        function loadFromLocalStorage() {
+            const storedConfig = localStorage.getItem('raffle_system_config');
+            const storedTickets = localStorage.getItem('raffle_system_tickets');
+
+            if (storedConfig) {
+                config = JSON.parse(storedConfig);
+            }
+            if (storedTickets) {
+                tickets = JSON.parse(storedTickets);
+            }
+        }
+
+        // Apply Config Values to DOM elements
+        function applyConfiguration() {
+            document.getElementById('header-title').textContent = config.raffleName;
+            document.getElementById('form-ticket-price').value = config.defaultPrice;
+            document.getElementById('ticket-title').textContent = config.raffleName;
+            document.getElementById('ticket-date-display').textContent = config.raffleDate;
+        }
+
+        // Render Numbers Grid (00 - 99)
+        function renderGrid() {
+            const gridContainer = document.getElementById('number-grid');
+            gridContainer.innerHTML = '';
+
+            for (let i = 0; i < 100; i++) {
+                const numStr = String(i).padStart(2, '0');
+                const hasTicket = tickets.hasOwnProperty(numStr);
+                const isSelected = selectedNumber === numStr;
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.setAttribute('data-number', numStr);
+                button.className = `aspect-square rounded-lg flex items-center justify-center font-bold text-sm sm:text-base transition relative border focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900`;
+
+                if (hasTicket) {
+                    const status = tickets[numStr].paymentStatus || 'pendiente';
+                    if (status === 'pagado') {
+                        button.classList.add('sold-badge-paid', 'border-emerald-500/50');
+                    } else {
+                        button.classList.add('sold-badge-pending', 'border-amber-500/50');
+                    }
+                    button.onclick = () => showNotice('Venta Registrada', `El número ${numStr} fue adquirido por ${tickets[numStr].buyerName} (${status === 'pagado' ? 'PAGADO' : 'PENDIENTE'}).`, 'info');
+                } else if (isSelected) {
+                    button.classList.add('bg-blue-600', 'text-white', 'border-blue-400', 'scale-[1.03]', 'shadow-md', 'shadow-blue-500/20');
+                    button.onclick = () => selectNumber(null);
+                } else {
+                    button.classList.add('bg-slate-800/80', 'text-slate-200', 'border-slate-700', 'hover:bg-slate-700', 'hover:border-slate-600');
+                    button.onclick = () => selectNumber(numStr);
+                }
+
+                const span = document.createElement('span');
+                span.textContent = numStr;
+                button.appendChild(span);
+
+                gridContainer.appendChild(button);
+            }
+        }
+
+        // Handle Number Selection
+        function selectNumber(numStr) {
+            selectedNumber = numStr;
+            renderGrid();
+
+            const inputNum = document.getElementById('form-selected-number');
+            if (numStr !== null) {
+                inputNum.value = numStr;
+            } else {
+                inputNum.value = '';
+            }
+        }
+
+        // Metrics Updater
+        function updateStatsAndProgress() {
+            const totalNumbers = 100;
+            const soldCount = Object.keys(tickets).length;
+            const availableCount = totalNumbers - soldCount;
+            
+            // Calculate financial metrics
+            let totalRevenue = 0;
+            let totalCollected = 0;
+            let totalReceivable = 0;
+
+            for (let key in tickets) {
+                const price = parseFloat(tickets[key].price || 0);
+                const status = tickets[key].paymentStatus || 'pendiente';
+                totalRevenue += price;
+                if (status === 'pagado') {
+                    totalCollected += price;
+                } else {
+                    totalReceivable += price;
+                }
+            }
+
+            // Update stats
+            document.getElementById('stat-available').textContent = availableCount;
+            document.getElementById('stat-sold').textContent = soldCount;
+            document.getElementById('stat-collected').textContent = `$${totalCollected.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('stat-receivable').textContent = `$${totalReceivable.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            // Goal metrics ("con 80 vendidos jugamos")
+            const goal = 80;
+            const percent = Math.min(100, Math.round((soldCount / goal) * 100));
+            
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentText = document.getElementById('progress-percent');
+            progressBar.style.width = `${percent}%`;
+            progressPercentText.textContent = `${percent}%`;
+
+            const helperText = document.getElementById('progress-helper');
+            const remainingSpan = document.getElementById('remaining-to-goal');
+
+            if (soldCount >= goal) {
+                progressBar.classList.remove('from-blue-500', 'to-indigo-500');
+                progressBar.classList.add('from-emerald-500', 'to-green-500');
+                helperText.className = "text-xs text-emerald-400 mt-2 flex items-center gap-1";
+                helperText.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 inline"></i><span>¡Meta de viabilidad superada! El sorteo está garantizado con un total de ${soldCount} ventas.</span>`;
+            } else {
+                progressBar.classList.add('from-blue-500', 'to-indigo-500');
+                progressBar.classList.remove('from-emerald-500', 'to-green-500');
+                helperText.className = "text-xs text-yellow-500/85 mt-2 flex items-center gap-1";
+                remainingSpan.textContent = goal - soldCount;
+                helperText.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5 inline"></i><span>Faltan <b id="remaining-to-goal">${goal - soldCount}</b> ventas para alcanzar el estado de juego confirmado.</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        // Save Sale Handler
+        function handleSaleSubmit(event) {
+            event.preventDefault();
+
+            if (!selectedNumber) {
+                showNotice('Error', 'Debe seleccionar un número de la cuadrícula antes de registrar una venta.', 'error');
+                return;
+            }
+
+            const buyerName = document.getElementById('form-buyer-name').value.trim();
+            const contact = document.getElementById('form-buyer-contact').value.trim();
+            const price = parseFloat(document.getElementById('form-ticket-price').value);
+            const paymentStatus = document.querySelector('input[name="form-payment-status"]:checked').value;
+
+            if (!buyerName || !contact || isNaN(price)) {
+                showNotice('Campos Obligatorios', 'Por favor, rellene todos los campos requeridos.', 'error');
+                return;
+            }
+
+            // Create Unique Control Code (ej: CTRL-XXXX)
+            const controlCode = 'CTRL-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+            
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }) + ' ' + now.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            // Save Ticket
+            tickets[selectedNumber] = {
+                number: selectedNumber,
+                buyerName: buyerName,
+                contact: contact,
+                price: price,
+                controlCode: controlCode,
+                timestamp: formattedDate,
+                paymentStatus: paymentStatus
+            };
+
+            saveToLocalStorage();
+            
+            // Build and show ticket visual wrapper
+            showTicketPreview(tickets[selectedNumber]);
+
+            // Clean Form States
+            selectedNumber = null;
+            document.getElementById('form-buyer-name').value = '';
+            document.getElementById('form-buyer-contact').value = '';
+            document.getElementById('form-selected-number').value = '';
+            document.querySelector('input[name="form-payment-status"][value="pagado"]').checked = true;
+
+            // Update UI components
+            renderGrid();
+            updateStatsAndProgress();
+            renderSalesHistory();
+
+            showNotice('Venta Registrada', `Se ha generado el ticket de control de autenticidad para el número ${tickets[selectedNumber].number}.`, 'success');
+        }
+
+        // Toggle Payment Status Directly from Table
+        function togglePaymentStatus(numStr) {
+            if (tickets.hasOwnProperty(numStr)) {
+                const currentStatus = tickets[numStr].paymentStatus || 'pendiente';
+                const nextStatus = currentStatus === 'pagado' ? 'pendiente' : 'pagado';
+                tickets[numStr].paymentStatus = nextStatus;
+                
+                saveToLocalStorage();
+                renderGrid();
+                updateStatsAndProgress();
+                renderSalesHistory();
+
+                // If currently viewing this ticket, update preview
+                const currentPreviewNum = document.getElementById('ticket-number-val').textContent;
+                if (currentPreviewNum === numStr) {
+                    showTicketPreview(tickets[numStr]);
+                }
+
+                showNotice('Estado Actualizado', `El número ${numStr} ahora está marcado como ${nextStatus === 'pagado' ? 'PAGADO' : 'POR COBRAR'}.`, 'success');
+            }
+        }
+
+        // Show ticket template in UI
+        function showTicketPreview(ticketData) {
+            document.getElementById('ticket-buyer-val').textContent = ticketData.buyerName;
+            document.getElementById('ticket-number-val').textContent = ticketData.number;
+            document.getElementById('ticket-contact-val').textContent = ticketData.contact;
+            document.getElementById('ticket-price-val').textContent = `$${parseFloat(ticketData.price).toFixed(2)}`;
+            document.getElementById('ticket-control-code').textContent = ticketData.controlCode;
+            document.getElementById('ticket-timestamp-val').textContent = ticketData.timestamp;
+
+            const badge = document.getElementById('ticket-status-badge');
+            const status = ticketData.paymentStatus || 'pendiente';
+            if (status === 'pagado') {
+                badge.textContent = 'PAGADO';
+                badge.className = "text-[10px] font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800";
+            } else {
+                badge.textContent = 'POR COBRAR';
+                badge.className = "text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-100 text-amber-800";
+            }
+
+            document.getElementById('ticket-preview-box').classList.remove('hidden');
+        }
+
+        // Share Ticket As Image (PNG) with fallbacks
+        function shareTicketAsImage() {
+            const ticketElement = document.getElementById('print-area');
+            if (!ticketElement) return;
+
+            showNotice('Generando imagen', 'Renderizando comprobante digital...', 'info');
+
+            html2canvas(ticketElement, {
+                backgroundColor: '#ffffff',
+                scale: 2 // High Resolution capture
+            }).then(canvas => {
+                canvas.toBlob(blob => {
+                    const num = document.getElementById('ticket-number-val').textContent;
+                    const buyer = document.getElementById('ticket-buyer-val').textContent;
+                    const filename = `Ticket_${num}_${buyer.replace(/\s+/g, '_')}.png`;
+                    const file = new File([blob], filename, { type: 'image/png' });
+
+                    const shareText = `🎟️ ¡Comprobante Oficial Sorteo ${config.raffleName}!\n👤 Comprador: ${buyer}\n🔢 Número: ${num}\n💰 Estado: ${(tickets[num].paymentStatus || 'pendiente').toUpperCase()}`;
+
+                    // Native Sharing Protocol (Mobile)
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file],
+                            title: `Ticket Digital Nº ${num}`,
+                            text: shareText
+                        }).then(() => {
+                            showNotice('Éxito', 'Ticket compartido correctamente.', 'success');
+                        }).catch(err => {
+                            console.log('Error de compartición cancelada o bloqueada:', err);
+                            triggerDownloadFallback(canvas, filename, shareText);
+                        });
+                    } else {
+                        // Desktop/Web Frame Fallback (Automatic download + Clipboard notification)
+                        triggerDownloadFallback(canvas, filename, shareText);
+                    }
+                }, 'image/png');
+            });
+        }
+
+        // Shared fallback for downloading and copying caption text
+        function triggerDownloadFallback(canvas, filename, text) {
+            // Trigger download of image
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            // Force copy the text representation
+            copyTextToClipboard(text);
+
+            showNotice(
+                'Descargado & Copiado',
+                'El ticket se ha descargado como imagen PNG y los datos fueron copiados al portapapeles. ¡Pégalo directamente en WhatsApp!',
+                'success'
+            );
+        }
+
+        // Cross-platform Clipboard copier helper for iframes
+        function copyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";  // Avoid scrolling to bottom
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Error al copiar texto: ', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Generate Board High Definition Image for WhatsApp Status
+        function generateBoardImage() {
+            showNotice('Generando Tablero', 'Preparando la imagen de estado de WhatsApp...', 'info');
+
+            // Render details into off-screen element
+            document.getElementById('share-card-title').textContent = config.raffleName;
+            document.getElementById('share-card-date').textContent = config.raffleDate;
+            document.getElementById('share-card-price').textContent = `$${config.defaultPrice}`;
+
+            const totalSold = Object.keys(tickets).length;
+            document.getElementById('share-card-sold').textContent = totalSold;
+            document.getElementById('share-card-avail').textContent = 100 - totalSold;
+
+            // Generate temporary 10x10 capture grid
+            const shareGrid = document.getElementById('share-card-grid');
+            shareGrid.innerHTML = '';
+
+            for (let i = 0; i < 100; i++) {
+                const numStr = String(i).padStart(2, '0');
+                const hasTicket = tickets.hasOwnProperty(numStr);
+
+                const cell = document.createElement('div');
+                cell.style.aspectRatio = "1/1";
+                cell.className = "rounded flex items-center justify-center font-black text-xs border relative";
+
+                if (hasTicket) {
+                    const status = tickets[numStr].paymentStatus || 'pendiente';
+                    if (status === 'pagado') {
+                        cell.className += " bg-emerald-500 text-slate-950 border-emerald-400";
+                    } else {
+                        cell.className += " bg-amber-500 text-slate-950 border-amber-400";
+                    }
+                    cell.innerHTML = `✕`;
+                } else {
+                    cell.className += " bg-slate-800/80 text-slate-200 border-slate-700";
+                    cell.textContent = numStr;
+                }
+
+                shareGrid.appendChild(cell);
+            }
+
+            // Capture rendered container
+            const captureArea = document.getElementById('board-sharing-card');
+            
+            // Wait 100ms to ensure template rendering complete
+            setTimeout(() => {
+                html2canvas(captureArea, {
+                    backgroundColor: '#020617',
+                    scale: 2 // High Resolution (1200x1600px Output)
+                }).then(canvas => {
+                    canvas.toBlob(blob => {
+                        const filename = `Estado_Rifa_${config.raffleName.replace(/\s+/g, '_')}.png`;
+                        const file = new File([blob], filename, { type: 'image/png' });
+                        const shareText = `🔥 ¡Sorteo Activo: ${config.raffleName}! 🔥\n\n🎯 Números libres: ${100 - totalSold}\n💰 Valor del Número: $${config.defaultPrice}\n\n¡Mira los números libres en la imagen adjunta, escríbeme y aparta el tuyo antes de que se agoten! 🚀`;
+
+                        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                            navigator.share({
+                                files: [file],
+                                title: `Estado del Tablero`,
+                                text: shareText
+                            }).then(() => {
+                                showNotice('Éxito', 'Estado compartido con éxito.', 'success');
+                            }).catch(() => {
+                                triggerDownloadFallback(canvas, filename, shareText);
+                            });
+                        } else {
+                            triggerDownloadFallback(canvas, filename, shareText);
+                        }
+                    }, 'image/png');
+                });
+            }, 150);
+        }
+
+        // Render Sales History Panel
+        function renderSalesHistory() {
+            const tbody = document.getElementById('history-table-body');
+            const historyCountSpan = document.getElementById('sales-history-count');
+            tbody.innerHTML = '';
+
+            const activeTickets = Object.values(tickets).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+            historyCountSpan.textContent = `${activeTickets.length} Ventas`;
+
+            if (activeTickets.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="empty-history-row">
+                        <td colspan="4" class="p-8 text-center text-slate-500">
+                            <p class="font-medium">No se han registrado ventas.</p>
+                            <p class="text-xs mt-1">Haga clic en un número libre e ingrese los datos.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            activeTickets.forEach(tk => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-800/35 transition text-xs sm:text-sm";
+                
+                const status = tk.paymentStatus || 'pendiente';
+                const isPaid = status === 'pagado';
+                
+                row.innerHTML = `
+                    <td class="p-3 font-mono font-extrabold ${isPaid ? 'text-emerald-400' : 'text-amber-400'}">${tk.number}</td>
+                    <td class="p-3">
+                        <div class="font-semibold text-slate-200">${tk.buyerName}</div>
+                        <div class="text-[10px] text-slate-400">${tk.contact}</div>
+                    </td>
+                    <td class="p-3">
+                        <div class="font-semibold text-slate-100">$${parseFloat(tk.price).toFixed(2)}</div>
+                        <button onclick="togglePaymentStatus('${tk.number}')" class="mt-1 flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition ${isPaid ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-900/40' : 'bg-amber-950/60 text-amber-400 border border-amber-800/50 hover:bg-amber-900/40'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
+                            <span>${isPaid ? 'Pagado' : 'Por Cobrar'}</span>
+                        </button>
+                    </td>
+                    <td class="p-3 text-right">
+                        <div class="flex justify-end gap-1.5">
+                            <button onclick="viewHistoryTicket('${tk.number}')" class="p-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition" title="Ver Ticket">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteTicketConfirm('${tk.number}')" class="p-1 text-red-400 hover:text-red-300 bg-red-950/20 hover:bg-red-900/40 rounded transition" title="Eliminar Venta">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            lucide.createIcons();
+        }
+
+        // View ticket from history
+        function viewHistoryTicket(numStr) {
+            if (tickets.hasOwnProperty(numStr)) {
+                showTicketPreview(tickets[numStr]);
+                document.getElementById('ticket-preview-box').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Delete Ticket Flow
+        function deleteTicketConfirm(numStr) {
+            if (confirm(`¿Está seguro de que desea eliminar la venta del número ${numStr}? Esta acción liberará la casilla.`)) {
+                delete tickets[numStr];
+                saveToLocalStorage();
+                renderGrid();
+                updateStatsAndProgress();
+                renderSalesHistory();
+                
+                // Hide ticket preview if deleted
+                const currentPreviewNum = document.getElementById('ticket-number-val').textContent;
+                if (currentPreviewNum === numStr) {
+                    document.getElementById('ticket-preview-box').classList.add('hidden');
+                }
+                
+                showNotice('Venta Eliminada', `El número ${numStr} ha sido liberado de forma segura.`, 'info');
+            }
+        }
+
+        // Config Modal Trigger Handlers
+        function openConfigModal() {
+            document.getElementById('cfg-raffle-name').value = config.raffleName;
+            document.getElementById('cfg-raffle-date').value = config.raffleDate;
+            document.getElementById('cfg-ticket-price').value = config.defaultPrice;
+
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function saveConfiguration() {
+            const name = document.getElementById('cfg-raffle-name').value.trim();
+            const date = document.getElementById('cfg-raffle-date').value.trim();
+            const price = parseFloat(document.getElementById('cfg-ticket-price').value);
+
+            if (!name || !date || isNaN(price)) {
+                showNotice('Error', 'Todos los campos de la configuración son obligatorios.', 'error');
+                return;
+            }
+
+            config.raffleName = name;
+            config.raffleDate = date;
+            config.defaultPrice = price;
+
+            saveToLocalStorage();
+            applyConfiguration();
+            closeConfigModal();
+
+            showNotice('Configuración Actualizada', 'Los datos principales del sorteo han sido guardados.', 'success');
+        }
+
+        // Full Factory Reset
+        function resetSystemData() {
+            if (confirm('¿ATENCIÓN! ¿Está seguro de que desea reiniciar todo el sistema? Se borrarán de forma permanente todas las ventas y la configuración actual.')) {
+                localStorage.removeItem('raffle_system_config');
+                localStorage.removeItem('raffle_system_tickets');
+                
+                config = {
+                    raffleName: "Rifa Regalo - Día del Padre",
+                    raffleDate: "Sábado 21 de Junio",
+                    defaultPrice: 60
+                };
+                tickets = {};
+                selectedNumber = null;
+
+                applyConfiguration();
+                renderGrid();
+                updateStatsAndProgress();
+                renderSalesHistory();
+                document.getElementById('ticket-preview-box').classList.add('hidden');
+
+                showNotice('Reinicio Exitoso', 'El sistema ha sido devuelto a su estado inicial.', 'info');
+            }
+        }
+
+        // Action Print Handler
+        function printTicket() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
